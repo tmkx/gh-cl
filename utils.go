@@ -2,9 +2,11 @@ package main
 
 import (
 	"fmt"
+	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"os"
 )
 
 type errMsg error
@@ -22,6 +24,7 @@ func contains(s []string, str string) bool {
 	return false
 }
 
+// Spinner
 type spinnerModel struct {
 	spinner  spinner.Model
 	text     string
@@ -77,4 +80,53 @@ func (m spinnerModel) View() string {
 		return m.farewell
 	}
 	return str
+}
+
+// List
+var docStyle = lipgloss.NewStyle().Margin(1, 2)
+
+type item struct {
+	title string
+	desc  string
+}
+
+func (i item) Title() string       { return i.title }
+func (i item) Description() string { return i.desc }
+func (i item) FilterValue() string { return i.title }
+
+type listModel struct {
+	list     list.Model
+	choice   chan string
+	quitting bool
+}
+
+func (m listModel) Init() tea.Cmd {
+	return nil
+}
+
+func (m listModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch keypress := msg.String(); keypress {
+		case "enter":
+			i, ok := m.list.SelectedItem().(item)
+			if ok {
+				m.choice <- i.title
+			}
+			return m, tea.Quit
+		case "ctrl+c":
+			os.Exit(1)
+			return m, tea.Quit
+		}
+	case tea.WindowSizeMsg:
+		h, v := docStyle.GetFrameSize()
+		m.list.SetSize(msg.Width-h, msg.Height-v)
+	}
+	var cmd tea.Cmd
+	m.list, cmd = m.list.Update(msg)
+	return m, cmd
+}
+
+func (m listModel) View() string {
+	return docStyle.Render(m.list.View())
 }
