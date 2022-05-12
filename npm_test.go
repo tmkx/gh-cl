@@ -18,10 +18,10 @@ func TestIsNpm(t *testing.T) {
 
 // git+https://github.com/vuejs/core.git
 func TestGetRepoFromUrl(t *testing.T) {
-	if getRepoFromUrl("git+https://github.com/vuejs/core.git") != "vuejs/core" {
+	if getNpmRepoFromUrl("git+https://github.com/vuejs/core.git") != "vuejs/core" {
 		t.Error()
 	}
-	if getRepoFromUrl("https://vuejs.github.io/core") != "vuejs/core" {
+	if getNpmRepoFromUrl("https://vuejs.github.io/core") != "vuejs/core" {
 		t.Error()
 	}
 }
