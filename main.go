@@ -2,10 +2,15 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
 	"log"
 	"os"
+	"os/exec"
 )
+
+var chRepo string
+var chTag string
 
 func main() {
 	flag.Parse()
@@ -18,6 +23,12 @@ func main() {
 	if err := p.Start(); err != nil {
 		os.Exit(1)
 	}
+
+	fmt.Println("Fetching changelog...")
+	cmd := exec.Command("gh", "release", "view", "-R", chRepo, chTag)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	_ = cmd.Run()
 }
 
 // For more examples of using go-gh, see:

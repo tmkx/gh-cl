@@ -6,8 +6,6 @@ import (
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"os"
-	"os/exec"
 )
 
 const (
@@ -15,7 +13,6 @@ const (
 	FetchingReleases
 	ChoosingRelease
 	FetchingChangelog
-	ShowChangelog
 )
 
 var docStyle = lipgloss.NewStyle().Margin(1, 2)
@@ -92,7 +89,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.list.SetItems(msg)
 	case chooseReleaseMsg:
 		m.state = FetchingChangelog
-		cmds = append(cmds, showReleaseCmd(m.repo, string(msg)))
+		chRepo = m.repo
+		chTag = string(msg)
+		cmds = append(cmds, tea.Quit)
 	}
 
 	switch m.state {
@@ -150,15 +149,5 @@ func getReleasesCmd(repo string) tea.Cmd {
 			items = append(items, item{title: release.TagName, desc: fmt.Sprintf("%v %v", release.PublishedAt, extra)})
 		}
 		return releasesMsg(items)
-	}
-}
-
-func showReleaseCmd(repo string, tag string) tea.Cmd {
-	return func() tea.Msg {
-		cmd := exec.Command("gh", "release", "view", "-R", repo, tag)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		_ = cmd.Run()
-		return tea.Quit()
 	}
 }
