@@ -24,6 +24,10 @@ func main() {
 		os.Exit(1)
 	}
 
+	if chRepo == "" || chTag == "" {
+		os.Exit(0)
+	}
+
 	fmt.Println("Fetching changelog...")
 	cmd := exec.Command("gh", "release", "view", "-R", chRepo, chTag)
 	cmd.Stdout = os.Stdout

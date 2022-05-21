@@ -82,6 +82,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case repoMsg:
 		m.state = FetchingReleases
 		m.repo = string(msg)
+		m.list.Title = fmt.Sprintf("Releases of %v", m.repo)
 		cmds = append(cmds, getReleasesCmd(m.repo))
 	case releasesMsg:
 		m.state = ChoosingRelease
