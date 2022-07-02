@@ -182,13 +182,14 @@ func (m model) View() string {
 
 func (m model) headerView() string {
 	title := titleStyle.Render(fmt.Sprintf("%s(%s) %s", m.pkgName, m.repo, m.tag))
-	line := strings.Repeat("-", util.Max(0, m.viewport.Width-lipgloss.Width(title)))
+	// https://github.com/charmbracelet/lipgloss/issues/40
+	line := strings.Repeat("─", util.Max(0, m.viewport.Width-lipgloss.Width(title)))
 	return lipgloss.JoinHorizontal(lipgloss.Center, title, line)
 }
 
 func (m model) footerView() string {
 	info := infoStyle.Render(fmt.Sprintf("%3.f%%", m.viewport.ScrollPercent()*100))
-	line := strings.Repeat("-", util.Max(0, m.viewport.Width-lipgloss.Width(info)))
+	line := strings.Repeat("─", util.Max(0, m.viewport.Width-lipgloss.Width(info)))
 	return lipgloss.JoinHorizontal(lipgloss.Center, line, info)
 }
 
