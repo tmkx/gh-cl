@@ -42,7 +42,7 @@ type model struct {
 	repo      string
 	tag       string
 	releases  []list.Item
-	changelog string
+	changelog util.ReleaseDetail
 	spinner   spinner.Model
 	list      list.Model
 	viewport  viewport.Model
@@ -62,7 +62,7 @@ func (i item) FilterValue() string { return i.title }
 type repoMsg string
 type releasesMsg []list.Item
 type chooseReleaseMsg string
-type showChangelogMsg string
+type showChangelogMsg util.ReleaseDetail
 
 func InitModel(pkgName string) model {
 	s := spinner.New()
@@ -129,8 +129,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, spinner.Tick, getChangelogCmd(m.repo, string(msg)))
 	case showChangelogMsg:
 		m.state = showChangelog
-		m.changelog = string(msg)
-		m.viewport.SetContent(m.changelog)
+		m.changelog = (util.ReleaseDetail)(msg)
+		in := fmt.Sprintf("%s\n\n**Open in browser**: %s", m.changelog.Description, m.changelog.Url)
+		out, _ := glamour.Render(in, "dracula")
+		m.viewport.SetContent(out)
 	}
 
 	switch m.state {
@@ -198,11 +200,14 @@ func getReleasesCmd(repo string) tea.Cmd {
 		var items []list.Item
 		for i := 0; i < len(releases); i++ {
 			release := releases[i]
-			var extra string
+			var extra []string
 			if release.IsLatest {
-				extra = "(latest)"
+				extra = append(extra, "latest")
 			}
-			items = append(items, item{title: release.TagName, desc: fmt.Sprintf("%v %v", release.PublishedAt, extra)})
+			if release.IsPrerelease {
+				extra = append(extra, "prerelease")
+			}
+			items = append(items, item{title: release.TagName, desc: fmt.Sprintf("%v %v", release.PublishedAt, strings.Join(extra, ", "))})
 		}
 		return releasesMsg(items)
 	}
@@ -211,8 +216,6 @@ func getReleasesCmd(repo string) tea.Cmd {
 func getChangelogCmd(repo string, tag string) tea.Cmd {
 	return func() tea.Msg {
 		releaseDetail := util.GetReleaseDetail(repo, tag)
-		in := fmt.Sprintf("**%s**\n%s", releaseDetail.TagName, releaseDetail.Description)
-		out, _ := glamour.Render(in, "dracula")
-		return showChangelogMsg(out)
+		return showChangelogMsg(releaseDetail)
 	}
 }

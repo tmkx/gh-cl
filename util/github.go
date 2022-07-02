@@ -8,15 +8,19 @@ import (
 )
 
 type Release struct {
-	TagName     string
-	Url         string
-	IsLatest    bool
-	PublishedAt string
+	TagName      string
+	Url          string
+	IsLatest     bool
+	IsPrerelease bool
+	PublishedAt  string
 }
 
 type ReleaseDetail struct {
 	Release
 	Description string
+	Author      struct {
+		Login string
+	}
 }
 
 func parseRepo(repo string) (string, string) {
