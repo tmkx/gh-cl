@@ -42,7 +42,7 @@ type model struct {
 	repo      string
 	tag       string
 	releases  []list.Item
-	changelog util.ReleaseDetail
+	changelog *util.ReleaseDetail
 	spinner   spinner.Model
 	list      list.Model
 	viewport  viewport.Model
@@ -59,10 +59,11 @@ func (i item) Title() string       { return i.title }
 func (i item) Description() string { return i.desc }
 func (i item) FilterValue() string { return i.title }
 
+type errorMsg error
 type repoMsg string
 type releasesMsg []list.Item
 type chooseReleaseMsg string
-type showChangelogMsg util.ReleaseDetail
+type showChangelogMsg *util.ReleaseDetail
 
 func InitModel(pkgName string) model {
 	s := spinner.New()
@@ -115,6 +116,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.viewport.Width = msg.Width
 		m.viewport.Height = msg.Height - verticalMarginHeight
 		m.viewport.YPosition = headerHeight
+	case errorMsg:
+		m.err = msg
 	case repoMsg:
 		m.state = fetchingReleases
 		m.repo = string(msg)
@@ -129,7 +132,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, spinner.Tick, getChangelogCmd(m.repo, string(msg)))
 	case showChangelogMsg:
 		m.state = showChangelog
-		m.changelog = (util.ReleaseDetail)(msg)
+		m.changelog = msg
 		in := fmt.Sprintf("%s\n\n**Open in browser**: %s", m.changelog.Description, m.changelog.Url)
 		r, _ := glamour.NewTermRenderer(
 			glamour.WithStylePath("dracula"),
@@ -201,7 +204,10 @@ func getRepoCmd(pkgName string) tea.Cmd {
 
 func getReleasesCmd(repo string) tea.Cmd {
 	return func() tea.Msg {
-		releases := util.GetReleases(repo)
+		releases, err := util.GetReleases(repo)
+		if err != nil {
+			return errorMsg(err)
+		}
 		var items []list.Item
 		for i := 0; i < len(releases); i++ {
 			release := releases[i]
@@ -220,7 +226,10 @@ func getReleasesCmd(repo string) tea.Cmd {
 
 func getChangelogCmd(repo string, tag string) tea.Cmd {
 	return func() tea.Msg {
-		releaseDetail := util.GetReleaseDetail(repo, tag)
+		releaseDetail, err := util.GetReleaseDetail(repo, tag)
+		if err != nil {
+			return errorMsg(err)
+		}
 		return showChangelogMsg(releaseDetail)
 	}
 }

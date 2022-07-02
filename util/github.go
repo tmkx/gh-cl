@@ -3,7 +3,6 @@ package util
 import (
 	"github.com/cli/go-gh"
 	graphql "github.com/cli/shurcooL-graphql"
-	"log"
 	"strings"
 )
 
@@ -31,12 +30,12 @@ func parseRepo(repo string) (string, string) {
 	return owner, name
 }
 
-func GetReleases(repo string) []Release {
+func GetReleases(repo string) ([]Release, error) {
 	owner, name := parseRepo(repo)
 
 	client, err := gh.GQLClient(nil)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	var query struct {
@@ -55,18 +54,18 @@ func GetReleases(repo string) []Release {
 
 	err = client.Query("RepositoryReleases", &query, variables)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
-	return query.Repository.Releases.Nodes
+	return query.Repository.Releases.Nodes, nil
 }
 
-func GetReleaseDetail(repo string, tagName string) ReleaseDetail {
+func GetReleaseDetail(repo string, tagName string) (*ReleaseDetail, error) {
 	owner, name := parseRepo(repo)
 
 	client, err := gh.GQLClient(nil)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	var query struct {
@@ -83,8 +82,8 @@ func GetReleaseDetail(repo string, tagName string) ReleaseDetail {
 
 	err = client.Query("RepositoryRelease", &query, variables)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
-	return query.Repository.Release
+	return &query.Repository.Release, nil
 }
