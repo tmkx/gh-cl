@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/spinner"
+	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/tmkx/gh-cl/util"
+	"strings"
 )
 
 const (
@@ -18,16 +20,32 @@ const (
 	showChangelog
 )
 
-var docStyle = lipgloss.NewStyle().Margin(1, 2)
+var (
+	docStyle = lipgloss.NewStyle().Margin(1, 2)
+
+	titleStyle = func() lipgloss.Style {
+		b := lipgloss.RoundedBorder()
+		b.Right = "├"
+		return lipgloss.NewStyle().BorderStyle(b).Padding(0, 1)
+	}()
+
+	infoStyle = func() lipgloss.Style {
+		b := lipgloss.RoundedBorder()
+		b.Left = "┤"
+		return titleStyle.Copy().BorderStyle(b)
+	}()
+)
 
 type model struct {
 	state     int
 	pkgName   string
 	repo      string
+	tag       string
 	releases  []list.Item
 	changelog string
 	spinner   spinner.Model
 	list      list.Model
+	viewport  viewport.Model
 	quitting  bool
 	err       error
 }
@@ -54,7 +72,9 @@ func InitModel(pkgName string) model {
 	l := list.New(make([]list.Item, 0), list.NewDefaultDelegate(), 0, 0)
 	l.Title = "Please select a release"
 
-	return model{spinner: s, list: l, pkgName: pkgName, state: queryingPackage}
+	v := viewport.New(0, 0)
+
+	return model{spinner: s, list: l, viewport: v, pkgName: pkgName, state: queryingPackage}
 }
 
 func (m model) Init() tea.Cmd {
@@ -77,6 +97,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.state == choosingRelease {
 				i, ok := m.list.SelectedItem().(item)
 				if ok {
+					m.tag = i.title
 					cmds = append(cmds, func() tea.Msg {
 						return chooseReleaseMsg(i.title)
 					})
@@ -84,8 +105,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 	case tea.WindowSizeMsg:
-		h, v := docStyle.GetFrameSize()
-		m.list.SetSize(msg.Width-h, msg.Height-v)
+		// list
+		w, h := docStyle.GetFrameSize()
+		m.list.SetSize(msg.Width-w, msg.Height-h)
+		// viewport
+		headerHeight := lipgloss.Height(m.headerView())
+		footerHeight := lipgloss.Height(m.footerView())
+		verticalMarginHeight := headerHeight + footerHeight
+		m.viewport.Width = msg.Width
+		m.viewport.Height = msg.Height - verticalMarginHeight
+		m.viewport.YPosition = headerHeight
 	case repoMsg:
 		m.state = fetchingReleases
 		m.repo = string(msg)
@@ -101,7 +130,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case showChangelogMsg:
 		m.state = showChangelog
 		m.changelog = string(msg)
-		fmt.Println(m.changelog)
+		m.viewport.SetContent(m.changelog)
 	}
 
 	switch m.state {
@@ -113,6 +142,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		newList, newCmd := m.list.Update(msg)
 		m.list = newList
 		cmds = append(cmds, newCmd)
+	case showChangelog:
+		var cmd tea.Cmd
+		m.viewport, cmd = m.viewport.Update(msg)
+		cmds = append(cmds, cmd)
 	}
 
 	return m, tea.Batch(cmds...)
@@ -131,8 +164,22 @@ func (m model) View() string {
 		return docStyle.Render(m.list.View())
 	case fetchingChangelog:
 		return fmt.Sprintf("%s Fetching changelog...", m.spinner.View())
+	case showChangelog:
+		return fmt.Sprintf("%s\n%s\n%s", m.headerView(), m.viewport.View(), m.footerView())
 	}
 	return ""
+}
+
+func (m model) headerView() string {
+	title := titleStyle.Render(fmt.Sprintf("%s(%s) %s", m.pkgName, m.repo, m.tag))
+	line := strings.Repeat("-", util.Max(0, m.viewport.Width-lipgloss.Width(title)))
+	return lipgloss.JoinHorizontal(lipgloss.Center, title, line)
+}
+
+func (m model) footerView() string {
+	info := infoStyle.Render(fmt.Sprintf("%3.f%%", m.viewport.ScrollPercent()*100))
+	line := strings.Repeat("-", util.Max(0, m.viewport.Width-lipgloss.Width(info)))
+	return lipgloss.JoinHorizontal(lipgloss.Center, line, info)
 }
 
 func getRepoCmd(pkgName string) tea.Cmd {
@@ -164,8 +211,8 @@ func getReleasesCmd(repo string) tea.Cmd {
 func getChangelogCmd(repo string, tag string) tea.Cmd {
 	return func() tea.Msg {
 		releaseDetail := util.GetReleaseDetail(repo, tag)
-		in := fmt.Sprintf("%s", releaseDetail.Description)
-		out, _ := glamour.Render(in, "dark")
+		in := fmt.Sprintf("**%s**\n%s", releaseDetail.TagName, releaseDetail.Description)
+		out, _ := glamour.Render(in, "dracula")
 		return showChangelogMsg(out)
 	}
 }

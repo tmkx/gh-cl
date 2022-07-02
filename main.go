@@ -15,7 +15,7 @@ func main() {
 	}
 	pkgName := flag.Args()[0]
 
-	p := tea.NewProgram(ui.InitModel(pkgName))
+	p := tea.NewProgram(ui.InitModel(pkgName), tea.WithAltScreen())
 	if err := p.Start(); err != nil {
 		os.Exit(1)
 	}
