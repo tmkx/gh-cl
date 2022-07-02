@@ -6,6 +6,7 @@ import (
 	"log"
 	"os/exec"
 	"regexp"
+	"strings"
 )
 
 func IsNpm(name string) bool {
@@ -14,12 +15,12 @@ func IsNpm(name string) bool {
 }
 
 func GetNpmRepoFromUrl(url string) string {
-	r1 := regexp.MustCompile(`github\.com/([\w-]+/[\w-]+)\b`)
+	r1 := regexp.MustCompile(`github\.com/([\w-]+/[\w-.]+)\b`)
 	g1 := r1.FindStringSubmatch(url)
 	if len(g1) > 0 {
-		return g1[1]
+		return strings.TrimSuffix(g1[1], ".git")
 	}
-	r2 := regexp.MustCompile(`\b([\w-]+)\.github\.io/([\w-]+)\b`)
+	r2 := regexp.MustCompile(`\b([\w-]+)\.github\.io/([\w-.]+)\b`)
 	g2 := r2.FindStringSubmatch(url)
 	if len(g2) > 0 {
 		return g2[1] + "/" + g2[2]

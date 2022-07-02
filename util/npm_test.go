@@ -21,6 +21,9 @@ func TestGetRepoFromUrl(t *testing.T) {
 	if GetNpmRepoFromUrl("git+https://github.com/vuejs/core.git") != "vuejs/core" {
 		t.Error()
 	}
+	if GetNpmRepoFromUrl("git+https://github.com/vercel/next.js.git") != "vercel/next.js" {
+		t.Error()
+	}
 	if GetNpmRepoFromUrl("https://vuejs.github.io/core") != "vuejs/core" {
 		t.Error()
 	}
