@@ -131,8 +131,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.state = showChangelog
 		m.changelog = (util.ReleaseDetail)(msg)
 		in := fmt.Sprintf("%s\n\n**Open in browser**: %s", m.changelog.Description, m.changelog.Url)
-		out, _ := glamour.Render(in, "dracula")
+		r, _ := glamour.NewTermRenderer(
+			glamour.WithStylePath("dracula"),
+			glamour.WithWordWrap(m.viewport.Width),
+		)
+		out, _ := r.Render(in)
 		m.viewport.SetContent(out)
+		cmds = append(cmds, tea.ClearScrollArea)
 	}
 
 	switch m.state {
