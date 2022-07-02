@@ -6,3 +6,5 @@
 2. `gh extension install tmkx/gh-cl`
 3. `gh cl vue` to view `vue`'s changelog
     - `gh cl vuejs/core` support GitHub repo also
+
+FIXME: inquirer

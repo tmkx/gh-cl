@@ -5,8 +5,8 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/tmkx/gh-cl/global"
 	"github.com/tmkx/gh-cl/util"
 )
 
@@ -15,6 +15,7 @@ const (
 	fetchingReleases
 	choosingRelease
 	fetchingChangelog
+	showChangelog
 )
 
 var docStyle = lipgloss.NewStyle().Margin(1, 2)
@@ -43,6 +44,7 @@ func (i item) FilterValue() string { return i.title }
 type repoMsg string
 type releasesMsg []list.Item
 type chooseReleaseMsg string
+type showChangelogMsg string
 
 func InitModel(pkgName string) model {
 	s := spinner.New()
@@ -65,6 +67,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "q", "esc", "ctrl+c":
+			if m.state == showChangelog {
+				m.state = choosingRelease
+				return m, nil
+			}
 			m.quitting = true
 			return m, tea.Quit
 		case "enter":
@@ -91,9 +97,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.list.SetItems(msg)
 	case chooseReleaseMsg:
 		m.state = fetchingChangelog
-		global.ChRepo = m.repo
-		global.ChTag = string(msg)
-		cmds = append(cmds, tea.Quit)
+		cmds = append(cmds, spinner.Tick, getChangelogCmd(m.repo, string(msg)))
+	case showChangelogMsg:
+		m.state = showChangelog
+		m.changelog = string(msg)
+		fmt.Println(m.changelog)
 	}
 
 	switch m.state {
@@ -150,5 +158,14 @@ func getReleasesCmd(repo string) tea.Cmd {
 			items = append(items, item{title: release.TagName, desc: fmt.Sprintf("%v %v", release.PublishedAt, extra)})
 		}
 		return releasesMsg(items)
+	}
+}
+
+func getChangelogCmd(repo string, tag string) tea.Cmd {
+	return func() tea.Msg {
+		releaseDetail := util.GetReleaseDetail(repo, tag)
+		in := fmt.Sprintf("%s", releaseDetail.Description)
+		out, _ := glamour.Render(in, "dark")
+		return showChangelogMsg(out)
 	}
 }
