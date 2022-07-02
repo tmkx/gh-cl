@@ -1,4 +1,4 @@
-package main
+package ui
 
 import (
 	"fmt"
@@ -6,13 +6,15 @@ import (
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/tmkx/gh-cl/global"
+	"github.com/tmkx/gh-cl/util"
 )
 
 const (
-	QueryingPackage = iota
-	FetchingReleases
-	ChoosingRelease
-	FetchingChangelog
+	queryingPackage = iota
+	fetchingReleases
+	choosingRelease
+	fetchingChangelog
 )
 
 var docStyle = lipgloss.NewStyle().Margin(1, 2)
@@ -42,7 +44,7 @@ type repoMsg string
 type releasesMsg []list.Item
 type chooseReleaseMsg string
 
-func initModel(pkgName string) model {
+func InitModel(pkgName string) model {
 	s := spinner.New()
 	s.Spinner = spinner.MiniDot
 	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
@@ -50,15 +52,14 @@ func initModel(pkgName string) model {
 	l := list.New(make([]list.Item, 0), list.NewDefaultDelegate(), 0, 0)
 	l.Title = "Please select a release"
 
-	return model{spinner: s, list: l, pkgName: pkgName, state: QueryingPackage}
+	return model{spinner: s, list: l, pkgName: pkgName, state: queryingPackage}
 }
 
 func (m model) Init() tea.Cmd {
-	return tea.Batch(getRepoCmd(m.pkgName), m.spinner.Tick)
+	return tea.Batch(getRepoCmd(m.pkgName), spinner.Tick)
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var cmd tea.Cmd
 	var cmds []tea.Cmd
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -67,7 +68,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.quitting = true
 			return m, tea.Quit
 		case "enter":
-			if m.state == ChoosingRelease {
+			if m.state == choosingRelease {
 				i, ok := m.list.SelectedItem().(item)
 				if ok {
 					cmds = append(cmds, func() tea.Msg {
@@ -80,33 +81,32 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		h, v := docStyle.GetFrameSize()
 		m.list.SetSize(msg.Width-h, msg.Height-v)
 	case repoMsg:
-		m.state = FetchingReleases
+		m.state = fetchingReleases
 		m.repo = string(msg)
 		m.list.Title = fmt.Sprintf("Releases of %v", m.repo)
 		cmds = append(cmds, getReleasesCmd(m.repo))
 	case releasesMsg:
-		m.state = ChoosingRelease
+		m.state = choosingRelease
 		m.releases = msg
 		m.list.SetItems(msg)
 	case chooseReleaseMsg:
-		m.state = FetchingChangelog
-		chRepo = m.repo
-		chTag = string(msg)
+		m.state = fetchingChangelog
+		global.ChRepo = m.repo
+		global.ChTag = string(msg)
 		cmds = append(cmds, tea.Quit)
 	}
 
 	switch m.state {
-	case QueryingPackage, FetchingReleases, FetchingChangelog:
+	case queryingPackage, fetchingReleases, fetchingChangelog:
 		newSpinner, newCmd := m.spinner.Update(msg)
 		m.spinner = newSpinner
-		cmd = newCmd
-	case ChoosingRelease:
+		cmds = append(cmds, newCmd)
+	case choosingRelease:
 		newList, newCmd := m.list.Update(msg)
 		m.list = newList
-		cmd = newCmd
+		cmds = append(cmds, newCmd)
 	}
 
-	cmds = append(cmds, cmd)
 	return m, tea.Batch(cmds...)
 }
 
@@ -115,13 +115,13 @@ func (m model) View() string {
 		return m.err.Error()
 	}
 	switch m.state {
-	case QueryingPackage:
+	case queryingPackage:
 		return fmt.Sprintf("%s Querying %s's repo...", m.spinner.View(), m.pkgName)
-	case FetchingReleases:
+	case fetchingReleases:
 		return fmt.Sprintf("%s Querying %s's releases...", m.spinner.View(), m.repo)
-	case ChoosingRelease:
+	case choosingRelease:
 		return docStyle.Render(m.list.View())
-	case FetchingChangelog:
+	case fetchingChangelog:
 		return fmt.Sprintf("%s Fetching changelog...", m.spinner.View())
 	}
 	return ""
@@ -130,8 +130,8 @@ func (m model) View() string {
 func getRepoCmd(pkgName string) tea.Cmd {
 	return func() tea.Msg {
 		repo := pkgName
-		if isNpm(repo) {
-			repo = getNpmRepo(pkgName)
+		if util.IsNpm(repo) {
+			repo = util.GetNpmRepo(pkgName)
 		}
 		return repoMsg(repo)
 	}
@@ -139,7 +139,7 @@ func getRepoCmd(pkgName string) tea.Cmd {
 
 func getReleasesCmd(repo string) tea.Cmd {
 	return func() tea.Msg {
-		releases := getReleases(repo)
+		releases := util.GetReleases(repo)
 		var items []list.Item
 		for i := 0; i < len(releases); i++ {
 			release := releases[i]

@@ -4,13 +4,12 @@ import (
 	"flag"
 	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/tmkx/gh-cl/global"
+	"github.com/tmkx/gh-cl/ui"
 	"log"
 	"os"
 	"os/exec"
 )
-
-var chRepo string
-var chTag string
 
 func main() {
 	flag.Parse()
@@ -19,17 +18,17 @@ func main() {
 	}
 	pkgName := flag.Args()[0]
 
-	p := tea.NewProgram(initModel(pkgName))
+	p := tea.NewProgram(ui.InitModel(pkgName))
 	if err := p.Start(); err != nil {
 		os.Exit(1)
 	}
 
-	if chRepo == "" || chTag == "" {
+	if global.ChRepo == "" || global.ChTag == "" {
 		os.Exit(0)
 	}
 
 	fmt.Println("Fetching changelog...")
-	cmd := exec.Command("gh", "release", "view", "-R", chRepo, chTag)
+	cmd := exec.Command("gh", "release", "view", "-R", global.ChRepo, global.ChTag)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	_ = cmd.Run()

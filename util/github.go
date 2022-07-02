@@ -1,4 +1,4 @@
-package main
+package util
 
 import (
 	"github.com/cli/go-gh"
@@ -7,13 +7,14 @@ import (
 	"strings"
 )
 
-func getReleases(repo string) []struct {
-	Name        string
+type Release struct {
 	TagName     string
 	Url         string
 	IsLatest    bool
 	PublishedAt string
-} {
+}
+
+func GetReleases(repo string) []Release {
 	parts := strings.SplitN(repo, "/", 2)
 	owner := parts[0]
 	name := parts[1]
@@ -26,13 +27,7 @@ func getReleases(repo string) []struct {
 	var query struct {
 		Repository struct {
 			Releases struct {
-				Nodes []struct {
-					Name        string
-					TagName     string
-					Url         string
-					IsLatest    bool
-					PublishedAt string
-				}
+				Nodes []Release
 			} `graphql:"releases(first: $perPage, orderBy: { field: CREATED_AT, direction: DESC })"`
 		} `graphql:"repository(owner: $owner, name: $name)"`
 	}

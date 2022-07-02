@@ -1,4 +1,4 @@
-package main
+package util
 
 import (
 	"encoding/json"
@@ -8,12 +8,12 @@ import (
 	"regexp"
 )
 
-func isNpm(name string) bool {
+func IsNpm(name string) bool {
 	matched, _ := regexp.MatchString("^(@[a-z\\d-~][a-z\\d-._~]*/)?[a-z\\d-~][a-z\\d-._~]*$", name)
 	return matched
 }
 
-func getNpmRepoFromUrl(url string) string {
+func GetNpmRepoFromUrl(url string) string {
 	r1 := regexp.MustCompile(`github\.com/([\w-]+/[\w-]+)\b`)
 	g1 := r1.FindStringSubmatch(url)
 	if len(g1) > 0 {
@@ -37,7 +37,7 @@ type npmPackage struct {
 	Repository npmRepository `json:"repository"`
 }
 
-func getNpmRepo(name string) string {
+func GetNpmRepo(name string) string {
 	out, err := exec.Command("npm", "view", name, "--json").Output()
 	if err != nil {
 		log.Fatal(err)
@@ -48,11 +48,11 @@ func getNpmRepo(name string) string {
 	if err != nil {
 		log.Fatal(err)
 	}
-	repo := getNpmRepoFromUrl(pkg.Repository.Url)
+	repo := GetNpmRepoFromUrl(pkg.Repository.Url)
 	if repo != "" {
 		return repo
 	}
-	repo = getNpmRepoFromUrl(pkg.Homepage)
+	repo = GetNpmRepoFromUrl(pkg.Homepage)
 	if repo != "" {
 		return repo
 	}
