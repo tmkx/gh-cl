@@ -104,6 +104,24 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					})
 				}
 			}
+		case "left":
+			if m.state == showChangelog && m.list.Index() > 0 {
+				m.list.Select(m.list.Index() - 1)
+				i := m.list.Items()[m.list.Index()].(item)
+				m.tag = i.title
+				cmds = append(cmds, func() tea.Msg {
+					return chooseReleaseMsg(i.title)
+				})
+			}
+		case "right":
+			if m.state == showChangelog && m.list.Index() < len(m.list.Items())-1 {
+				m.list.Select(m.list.Index() + 1)
+				i := m.list.Items()[m.list.Index()].(item)
+				m.tag = i.title
+				cmds = append(cmds, func() tea.Msg {
+					return chooseReleaseMsg(i.title)
+				})
+			}
 		}
 	case tea.WindowSizeMsg:
 		// list
