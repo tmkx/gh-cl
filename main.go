@@ -17,7 +17,6 @@ func main() {
 
 	p := tea.NewProgram(ui.InitModel(pkgName), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
-		p.Quit()
 		os.Exit(1)
 	}
 }

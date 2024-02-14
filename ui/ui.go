@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"errors"
 	"fmt"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/spinner"
@@ -79,7 +80,7 @@ func InitModel(pkgName string) model {
 }
 
 func (m model) Init() tea.Cmd {
-	return tea.Batch(getRepoCmd(m.pkgName), spinner.Tick)
+	return tea.Batch(getRepoCmd(m.pkgName), m.spinner.Tick)
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -150,7 +151,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.list.SetItems(msg)
 	case chooseReleaseMsg:
 		m.state = fetchingChangelog
-		cmds = append(cmds, spinner.Tick, getChangelogCmd(m.repo, string(msg)))
+		cmds = append(cmds, m.spinner.Tick, getChangelogCmd(m.repo, string(msg)))
 	case showChangelogMsg:
 		m.state = showChangelog
 		m.changelog = msg
@@ -218,7 +219,11 @@ func getRepoCmd(pkgName string) tea.Cmd {
 	return func() tea.Msg {
 		repo := pkgName
 		if util.IsNpm(repo) {
-			repo = util.GetNpmRepo(pkgName)
+			err := errors.New("")
+			repo, err = util.GetNpmRepo(pkgName)
+			if err != nil {
+				return errorMsg(err)
+			}
 		}
 		return repoMsg(repo)
 	}

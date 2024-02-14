@@ -2,6 +2,7 @@ package util
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"os/exec"
@@ -38,10 +39,10 @@ type npmPackage struct {
 	Repository npmRepository `json:"repository"`
 }
 
-func GetNpmRepo(name string) string {
+func GetNpmRepo(name string) (string, error) {
 	out, err := exec.Command("npm", "view", name, "--json").Output()
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 
 	var pkg npmPackage
@@ -51,12 +52,12 @@ func GetNpmRepo(name string) string {
 	}
 	repo := GetNpmRepoFromUrl(pkg.Repository.Url)
 	if repo != "" {
-		return repo
+		return repo, nil
 	}
 	repo = GetNpmRepoFromUrl(pkg.Homepage)
 	if repo != "" {
-		return repo
+		return repo, nil
 	}
 
-	panic(fmt.Sprintf("Cannot get repo from npm package, %#v\n", pkg))
+	return "", errors.New(fmt.Sprintf("Cannot get repo from npm package, %#v\n", pkg))
 }
