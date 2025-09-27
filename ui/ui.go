@@ -3,6 +3,8 @@ package ui
 import (
 	"errors"
 	"fmt"
+	"strings"
+
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/viewport"
@@ -10,7 +12,6 @@ import (
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/tmkx/gh-cl/util"
-	"strings"
 )
 
 const (
@@ -162,7 +163,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		)
 		out, _ := r.Render(in)
 		m.viewport.SetContent(out)
-		cmds = append(cmds, tea.ClearScrollArea)
+		cmds = append(cmds, tea.ClearScreen)
 	}
 
 	switch m.state {
@@ -205,13 +206,13 @@ func (m model) View() string {
 func (m model) headerView() string {
 	title := titleStyle.Render(fmt.Sprintf("%s(%s) %s", m.pkgName, m.repo, m.tag))
 	// https://github.com/charmbracelet/lipgloss/issues/40
-	line := strings.Repeat("─", util.Max(0, m.viewport.Width-lipgloss.Width(title)))
+	line := strings.Repeat("─", max(0, m.viewport.Width-lipgloss.Width(title)))
 	return lipgloss.JoinHorizontal(lipgloss.Center, title, line)
 }
 
 func (m model) footerView() string {
 	info := infoStyle.Render(fmt.Sprintf("%3.f%%", m.viewport.ScrollPercent()*100))
-	line := strings.Repeat("─", util.Max(0, m.viewport.Width-lipgloss.Width(info)))
+	line := strings.Repeat("─", max(0, m.viewport.Width-lipgloss.Width(info)))
 	return lipgloss.JoinHorizontal(lipgloss.Center, line, info)
 }
 

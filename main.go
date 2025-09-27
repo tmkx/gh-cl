@@ -2,10 +2,11 @@ package main
 
 import (
 	"flag"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/tmkx/gh-cl/ui"
 	"log"
 	"os"
+
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/tmkx/gh-cl/ui"
 )
 
 func main() {

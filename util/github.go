@@ -1,9 +1,10 @@
 package util
 
 import (
+	"strings"
+
 	"github.com/cli/go-gh"
 	graphql "github.com/cli/shurcooL-graphql"
-	"strings"
 )
 
 type Release struct {
